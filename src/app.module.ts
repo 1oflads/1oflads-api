@@ -4,6 +4,9 @@ import {Connection} from "typeorm";
 import {UserModule} from "./users/UserModule";
 import {User} from "./users/entity/User";
 import {AuthModule} from "./auth/AuthModule";
+import {Group} from "./users/entity/Group";
+import {Rankable} from "./users/entity/Rankable";
+import {Role} from "./users/entity/Role";
 
 
 @Module({
@@ -15,7 +18,7 @@ import {AuthModule} from "./auth/AuthModule";
             username: 'root',
             password: '',
             database: 'dbname12',
-            entities: [User],
+            entities: [User, Group, Rankable, Role],
             synchronize: true,
         }),
         UserModule,

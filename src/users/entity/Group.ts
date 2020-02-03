@@ -2,12 +2,8 @@ import {ChildEntity, Column} from "typeorm";
 import {Rankable} from "./Rankable";
 
 @ChildEntity()
-export class User extends Rankable {
+export class Group extends Rankable {
 
     @Column()
-    public username: string;
-
-    @Column()
-    public password: string;
-
+    public name: string;
 }
