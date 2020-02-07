@@ -1,5 +1,7 @@
-import {Column, Entity, ManyToMany, PrimaryGeneratedColumn} from "typeorm";
+import {Column, Entity, ManyToMany, OneToMany, PrimaryGeneratedColumn} from "typeorm";
 import {Rankable} from "./Rankable";
+import {UserRoleHistory} from "./UserRoleHistory";
+import {User} from "./User";
 
 @Entity()
 export class Role {
@@ -10,9 +12,10 @@ export class Role {
     @Column()
     public name: string;
 
-    @ManyToMany(type => Rankable, rankable => rankable.roles)
-    public participants: Rankable[];
+    @OneToMany(type => UserRoleHistory, uhr => uhr.role)
+    public roleHistory: UserRoleHistory[];
+
+    @OneToMany(type => User, user => user.role)
+    public participants: User[];
 }
-
-
 

@@ -11,14 +11,30 @@ import {AuthController} from "./controller/AuthController";
 import {Group} from "../users/entity/Group";
 import {Rankable} from "../users/entity/Rankable";
 import {Role} from "../users/entity/Role";
+import {Challenge} from "../challenge/entity/Challenge";
+import {ChallengeApplication} from "../challenge/entity/ChallengeApplication";
+import {GroupChallengePoll} from "../challenge/entity/GroupChallengePoll";
+import {ChallengeRepository} from "../challenge/repository/ChallengeRepository";
+import {PollRepository} from "../challenge/repository/PollRepository";
 
 @Module({
     imports: [
         JwtModule.register({
             secret: jwtConstants.secret,
-            signOptions: {expiresIn: '60s'},
+            signOptions: {expiresIn: '168h'},
         }),
-        TypeOrmModule.forFeature([User, Group, Rankable, Role, UserRepository])
+        TypeOrmModule.forFeature([
+            User,
+            Group,
+            Rankable,
+            Role,
+            Challenge,
+            ChallengeApplication,
+            GroupChallengePoll,
+            UserRepository,
+            ChallengeRepository,
+            PollRepository
+        ])
     ],
     providers: [UsersService, AuthService, JWTAuthStrategy],
     controllers: [AuthController]

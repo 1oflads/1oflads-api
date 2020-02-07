@@ -1,9 +1,10 @@
-import {Body, Controller, Get, Post, Req} from "@nestjs/common";
+import {Body, Controller, Get, Post} from "@nestjs/common";
 import {UserRegisterRequest} from "../payload/UserRegisterRequest";
 import {UsersService} from "../service/UsersService";
 import {User} from "../entity/User";
 import {UserStrippedDTO} from "../../auth/payload/UserStrippedDTO";
 import {AuthPrincipal, Public} from "../../auth/decorator/AuthDecorator";
+import {UserProfileViewModel} from "../payload/UserProfileViewModel";
 
 @Controller("/users")
 export class UsersController {
@@ -20,7 +21,13 @@ export class UsersController {
     }
 
     @Get("/me")
-    async profile(@AuthPrincipal() user): Promise<UserStrippedDTO> {
-        return user;
+    async profile(@AuthPrincipal() principal: UserStrippedDTO): Promise<UserProfileViewModel> {
+        const user = await this.userService.find(principal.id);
+        return new UserProfileViewModel(
+            user.username,
+            user.name,
+            user.description,
+            user.role.name
+        );
     }
 }
