@@ -1,4 +1,4 @@
-import {forwardRef, Inject, Injectable} from "@nestjs/common";
+import {Injectable} from "@nestjs/common";
 import {InjectRepository} from "@nestjs/typeorm";
 import {Challenge} from "../entity/Challenge";
 import {ChallengeApplication, ValidationStatus} from "../entity/ChallengeApplication";
@@ -18,6 +18,7 @@ import {PollRepository} from "../repository/PollRepository";
 import {GroupAlreadyHasPoll} from "../error/GroupAlreadyHasPoll";
 import {Group} from "../../users/entity/Group";
 import {NotAnOwnerError} from "../../core/error/NotAnOwnerError";
+import {ChallengeCreateRequest} from "../payload/ChallengeCreateRequest";
 
 @Injectable()
 export class ChallengeService {
@@ -32,6 +33,18 @@ export class ChallengeService {
         @InjectRepository(GroupChallengePoll) private readonly pollRepository: PollRepository,
         private readonly usersService: UsersService
     ) {
+    }
+
+    async create(request: ChallengeCreateRequest, isAdmin: boolean): Promise<Challenge> {
+        const challenge = new Challenge();
+        challenge.name = request.name;
+        challenge.points = request.points;
+        challenge.description = request.description;
+        challenge.startsOn = request.startsOn;
+        challenge.endsOn = request.endsOn;
+        challenge.validationStatus = isAdmin ? ValidationStatus.ACCEPTED : ValidationStatus.PENDING;
+
+        return this.challengeRepository.save(challenge);
     }
 
     async findAllAccepted(): Promise<Challenge[]> {

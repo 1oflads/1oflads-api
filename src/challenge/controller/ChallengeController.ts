@@ -9,6 +9,7 @@ import {ChallengeApplicationRequest} from "../payload/ChallengeApplicationReques
 import {GroupChallengePoll} from "../entity/GroupChallengePoll";
 import {GroupPollVoteRequest} from "../payload/GroupPollVoteRequest";
 import {GroupNeedsPollOrQuorumError} from "../error/GroupNeedsPollOrQuorumError";
+import {ChallengeCreateRequest} from "../payload/ChallengeCreateRequest";
 
 @Controller("/challenges")
 export class ChallengeController {
@@ -18,6 +19,10 @@ export class ChallengeController {
     ) {
     }
 
+    @Post()
+    async create(@Body() request: ChallengeCreateRequest, @AuthPrincipal() user: UserStrippedDTO): Promise<Challenge> {
+        return this.challengeService.create(request, user.isAdmin);
+    }
 
     @Get()
     async filterAll(@Query("type") type: string): Promise<Challenge[]> {
