@@ -5,6 +5,7 @@ import {Group} from "./Group";
 import {UserRoleHistory} from "./UserRoleHistory";
 import {Role} from "./Role";
 import {Sphere} from "./Sphere";
+import {GroupCalendar} from "./GroupCalendar";
 
 @ChildEntity()
 export class User extends Rankable {
@@ -42,4 +43,7 @@ export class User extends Rankable {
 
     @Column()
     public avatarUrl: string;
+
+    @OneToMany(type => GroupCalendar, calendar => calendar.createdBy)
+    public createdGroupCalendarSlots: Promise<GroupCalendar[]>;
 }

@@ -1,4 +1,4 @@
-import {Inject, Injectable} from "@nestjs/common";
+import {ForbiddenException, Inject, Injectable} from "@nestjs/common";
 import {InjectRepository} from "@nestjs/typeorm";
 import {UserRegisterRequest} from "../payload/UserRegisterRequest";
 import {User} from "../entity/User";
@@ -11,7 +11,7 @@ import {UserProfileEditRequest} from "../payload/UserProfileEditRequest";
 import {ConfigType} from "@nestjs/config";
 import FileConfig from "../../config/FileConfig";
 import {Role} from "../entity/Role";
-import {Repository} from "typeorm";
+import {LessThanOrEqual, MoreThanOrEqual, Repository} from "typeorm";
 import {UserProfileViewModel} from "../payload/UserProfileViewModel";
 import {RoleInfoViewModel} from "../payload/RoleInfoViewModel";
 import {UserRoleHistory} from "../entity/UserRoleHistory";
@@ -24,6 +24,12 @@ import {GroupViewModel} from "../payload/GroupViewModel";
 import {GroupMemberViewModel} from "../payload/GroupMemberViewModel";
 import {SpherePreviewModel} from "../payload/SpherePreviewModel";
 import {Sphere} from "../entity/Sphere";
+import {CalendarEventCreateRequest} from "../payload/CalendarEventCreateRequest";
+import {EventType} from "../entity/EventType";
+import {GroupCalendar} from "../entity/GroupCalendar";
+import {GroupRoleRestriction} from "../entity/GroupRoleRestriction";
+import {EventInfoViewModel} from "../payload/EventInfoViewModel";
+import {NotAnOwnerError} from "../../core/error/NotAnOwnerError";
 
 @Injectable()
 export class UsersService {
@@ -34,6 +40,8 @@ export class UsersService {
         @InjectRepository(UserRoleHistory) private readonly historyRepository: Repository<UserRoleHistory>,
         @InjectRepository(Group) private readonly groupRepository: Repository<Group>,
         @InjectRepository(Sphere) private readonly sphereRepository: Repository<Sphere>,
+        @InjectRepository(GroupCalendar) private readonly calendarRepository: Repository<GroupCalendar>,
+        @InjectRepository(GroupRoleRestriction) private readonly groupRoleRestrictionRepository: Repository<GroupRoleRestriction>,
         @Inject(FileConfig.KEY) private readonly fileConfig: ConfigType<typeof FileConfig>
     ) {
     }
@@ -230,4 +238,91 @@ export class UsersService {
     async findSpheres(): Promise<SpherePreviewModel[]> {
         return (await this.sphereRepository.find()).map(s => new SpherePreviewModel(s.id, s.name));
     }
+
+    async createGroupAppointment(groupId: number, userId: number, createEventModel: CalendarEventCreateRequest)
+        : Promise<EventInfoViewModel> {
+        const eventType = UsersService.getEventType(createEventModel.typeId);
+        const group = this.groupRepository.findOne(groupId);
+        const user = this.find(userId);
+
+        const restriction = await this.groupRoleRestrictionRepository.findOne({
+            where: {
+                role: new Promise(async () => (await user).role),
+                eventType: eventType
+            }
+        });
+
+        if (!restriction || !(await user).groups.some(g => g.id === groupId)) {
+            throw new ForbiddenException();
+        }
+
+        const event = new GroupCalendar();
+        event.from = createEventModel.from;
+        event.to = createEventModel.to;
+        event.eventType = eventType;
+        event.createdBy = user;
+        event.group = group;
+
+        this.calendarRepository.save(event);
+
+        return new EventInfoViewModel(
+            event.from,
+            event.to,
+            event.eventType
+        );
+    }
+
+    async getGroupAppointments(groupId: number, userId: number, from: Date = null, to: Date = null)
+        : Promise<EventInfoViewModel[]> {
+        const user = this.find(userId);
+        if (!(await user).groups.some(g => g.id === groupId)) {
+            throw new NotAnOwnerError();
+        }
+
+        let whereClause = {
+            group: {
+                id: groupId
+            }
+        };
+
+        if (from) {
+            let newWhere = {
+                from: MoreThanOrEqual(from)
+            };
+
+            whereClause = Object.assign(whereClause, newWhere);
+        }
+
+        if (to) {
+            let newWhere = {
+                from: LessThanOrEqual(to)
+            };
+
+            whereClause = Object.assign(whereClause, newWhere);
+        }
+
+        return (await this.calendarRepository.find({where: whereClause}))
+            .map(cal => new EventInfoViewModel(
+                cal.from,
+                cal.to,
+                cal.eventType
+            ));
+    }
+
+    private static getEventType(typeId: number): EventType {
+        if (typeId == EventType.REHEARSAL.valueOf()) {
+            return EventType.REHEARSAL;
+        }
+
+        if (typeId == EventType.MEETING.valueOf()) {
+            return EventType.MEETING;
+        }
+
+        if (typeId == EventType.PUBLIC_EVENT.valueOf()) {
+            return EventType.PUBLIC_EVENT;
+        }
+
+        return EventType.SHOW;
+    }
+
 }

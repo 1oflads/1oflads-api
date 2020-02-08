@@ -10,6 +10,7 @@ import {Rankable} from "./Rankable";
 import {UserRoleHistory} from "./UserRoleHistory";
 import {User} from "./User";
 import {RoleTheme} from "./RoleTheme";
+import {GroupRoleRestriction} from "./GroupRoleRestriction";
 
 @Entity()
 export class Role {
@@ -28,5 +29,8 @@ export class Role {
 
     @OneToMany(type => User, user => user.role)
     public participants: User[];
+
+    @OneToMany(type => GroupRoleRestriction, restriction => restriction.role)
+    public groupRestrictions: Promise<GroupRoleRestriction[]>;
 }
 
