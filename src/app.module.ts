@@ -18,6 +18,7 @@ import {RoleTheme} from "./users/entity/RoleTheme";
 import {ArticleModule} from "./articles/ArticleModule";
 import {Article} from "./articles/entity/Article";
 import {Sphere} from "./users/entity/Sphere";
+import {CoreModule} from "./core/CoreModule";
 
 
 @Module({
@@ -32,14 +33,16 @@ import {Sphere} from "./users/entity/Sphere";
             port: 3306,
             username: 'root',
             password: '',
-            database: 'dbname12',
+            database: '1oflads',
             entities: [User, Group, Rankable, Role, Challenge, UserRoleHistory, ChallengeApplication, GroupChallengePoll, RoleTheme, Article, Sphere],
             synchronize: true,
         }),
         UserModule,
         AuthModule,
         ChallengeModule,
-        ArticleModule
+        ArticleModule,
+        CoreModule,
+        ChallengeModule
     ],
     controllers: [],
     providers: [],
