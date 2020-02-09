@@ -17,6 +17,7 @@ import {GroupChallengePoll} from "../challenge/entity/GroupChallengePoll";
 import {ChallengeRepository} from "../challenge/repository/ChallengeRepository";
 import {PollRepository} from "../challenge/repository/PollRepository";
 import {UserRoleHistory} from "../users/entity/UserRoleHistory";
+import {Sphere} from "../users/entity/Sphere";
 
 @Module({
     imports: [
@@ -30,6 +31,7 @@ import {UserRoleHistory} from "../users/entity/UserRoleHistory";
             Group,
             Rankable,
             Role,
+            Sphere,
             Challenge,
             ChallengeApplication,
             GroupChallengePoll,

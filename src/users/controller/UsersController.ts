@@ -17,7 +17,7 @@ import {UserProfileEditRequest} from "../payload/UserProfileEditRequest";
 import {FileInterceptor} from "@nestjs/platform-express";
 import {RoleInfoViewModel} from "../payload/RoleInfoViewModel";
 import {UserRateViewModel} from "../entity/UserRateViewModel";
-import {GroupCreateRequest} from "../entity/GroupCreateRequest";
+import {GroupCreateRequest} from "../payload/GroupCreateRequest";
 
 @Controller("/users")
 export class UsersController {
@@ -56,14 +56,10 @@ export class UsersController {
         return this.userService.edit(principal.id, model, avatar);
     }
 
+    @Public()
     @Get("/rating")
     async rating(): Promise<UserRateViewModel[]> {
         return this.userService.findAllSorted();
-    }
-
-    @Post("/group")
-    async group(request: GroupCreateRequest): Promise<GroupCreateRequest> {
-        return this.userService.createGroup(request);
     }
 
 }

@@ -16,6 +16,9 @@ import {ConfigModule} from "@nestjs/config";
 import FileConfig from "../config/FileConfig";
 import {UserRoleHistory} from "./entity/UserRoleHistory";
 import {RolesController} from "./controller/RolesController";
+import {GroupsController} from "./controller/GroupsController";
+import {Sphere} from "./entity/Sphere";
+import {SpheresController} from "./controller/SpheresController";
 
 @Module({
     imports: [
@@ -26,6 +29,7 @@ import {RolesController} from "./controller/RolesController";
             User,
             UserRoleHistory,
             Group,
+            Sphere,
             Rankable,
             Role,
             Challenge,
@@ -36,7 +40,7 @@ import {RolesController} from "./controller/RolesController";
             PollRepository
         ])],
     providers: [UsersService],
-    controllers: [UsersController, RolesController]
+    controllers: [UsersController, RolesController, GroupsController, SpheresController]
 })
 export class UserModule {
 

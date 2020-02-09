@@ -4,6 +4,7 @@ import {GroupChallengePoll} from "../../challenge/entity/GroupChallengePoll";
 import {Group} from "./Group";
 import {UserRoleHistory} from "./UserRoleHistory";
 import {Role} from "./Role";
+import {Sphere} from "./Sphere";
 
 @ChildEntity()
 export class User extends Rankable {
@@ -24,6 +25,9 @@ export class User extends Rankable {
 
     @ManyToMany(type => Group, group => group.users)
     public groups: Group[];
+
+    @ManyToMany(type => Sphere, sphere => sphere.users)
+    public spheres: Sphere[];
 
     @OneToMany(type => UserRoleHistory, uhr => uhr.user)
     public roleHistory: UserRoleHistory[];

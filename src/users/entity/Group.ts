@@ -1,15 +1,47 @@
-import {ChildEntity, Column, JoinTable, ManyToMany, OneToMany} from "typeorm";
+import {
+    ChildEntity,
+    Column,
+    Entity,
+    JoinTable,
+    ManyToMany, ManyToOne,
+    OneToMany, PrimaryGeneratedColumn
+} from "typeorm";
 import {Rankable} from "./Rankable";
 import {GroupChallengePoll} from "../../challenge/entity/GroupChallengePoll";
 import {User} from "./User";
+import {Sphere} from "./Sphere";
 
-@ChildEntity()
+@Entity()
 export class Group extends Rankable {
+    @PrimaryGeneratedColumn()
+    public id: number;
 
     @Column()
     public name: string;
 
-    @ManyToMany(type => User)
+    @Column()
+    public avatarUrl: string;
+
+    @Column()
+    public description: string;
+
+    @Column()
+    public backgroundColor: string;
+
+    @Column()
+    public backgroundUrl: string;
+
+    @Column()
+    innerBackgroundColor: string;
+
+    @Column()
+    fontColor: string;
+
+    @ManyToMany(type => User, {eager: true})
     @JoinTable()
     public users: User[];
+
+    @ManyToOne(type => Sphere)
+    @JoinTable()
+    public sphere: Sphere;
 }

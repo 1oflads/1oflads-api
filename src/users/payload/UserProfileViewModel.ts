@@ -1,4 +1,5 @@
 import {RoleInfoViewModel} from "./RoleInfoViewModel";
+import {SpherePreviewModel} from "./SpherePreviewModel";
 
 export class UserProfileViewModel {
     constructor(
@@ -7,7 +8,8 @@ export class UserProfileViewModel {
         public avatarUrl: string,
         public description: string,
         public points: number = 0,
-        public role: RoleInfoViewModel
+        public role: RoleInfoViewModel,
+        public spheres: SpherePreviewModel[] = []
     ) {
     }
 }

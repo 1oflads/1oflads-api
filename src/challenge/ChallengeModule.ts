@@ -16,6 +16,7 @@ import {UserModule} from "../users/UserModule";
 import {UsersService} from "../users/service/UsersService";
 import {UserRoleHistory} from "../users/entity/UserRoleHistory";
 import {ChallengeApplicationRepository} from "./repository/ChallengeApplicationRepository";
+import {Sphere} from "../users/entity/Sphere";
 
 @Module({
     imports: [
@@ -26,6 +27,7 @@ import {ChallengeApplicationRepository} from "./repository/ChallengeApplicationR
             Rankable,
             Role,
             Challenge,
+            Sphere,
             ChallengeApplication,
             GroupChallengePoll,
             UserRepository,

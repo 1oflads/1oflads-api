@@ -16,8 +16,14 @@ import {UserProfileViewModel} from "../payload/UserProfileViewModel";
 import {RoleInfoViewModel} from "../payload/RoleInfoViewModel";
 import {UserRoleHistory} from "../entity/UserRoleHistory";
 import {UserRateViewModel} from "../entity/UserRateViewModel";
-import {GroupCreateRequest} from "../entity/GroupCreateRequest";
+import {GroupCreateRequest} from "../payload/GroupCreateRequest";
 import {Group} from "../entity/Group";
+import {GroupPreviewModel} from "../payload/GroupPreviewModel";
+import {GroupEditRequest} from "../payload/GroupEditRequest";
+import {GroupViewModel} from "../payload/GroupViewModel";
+import {GroupMemberViewModel} from "../payload/GroupMemberViewModel";
+import {SpherePreviewModel} from "../payload/SpherePreviewModel";
+import {Sphere} from "../entity/Sphere";
 
 @Injectable()
 export class UsersService {
@@ -27,6 +33,7 @@ export class UsersService {
         @InjectRepository(Role) private readonly roleRepository: Repository<Role>,
         @InjectRepository(UserRoleHistory) private readonly historyRepository: Repository<UserRoleHistory>,
         @InjectRepository(Group) private readonly groupRepository: Repository<Group>,
+        @InjectRepository(Sphere) private readonly sphereRepository: Repository<Sphere>,
         @Inject(FileConfig.KEY) private readonly fileConfig: ConfigType<typeof FileConfig>
     ) {
     }
@@ -63,15 +70,33 @@ export class UsersService {
         return this.userRepository.findOne(userId);
     }
 
+    async saveFile(file) {
+        const now = new Date();
+
+        fs.writeFileSync(
+            this.fileConfig.destination + now.getTime() + file.originalname,
+            file.buffer
+        );
+
+        return this.fileConfig.staticRoot + encodeURIComponent(now.getTime() + file.originalname);
+    }
+
     async edit(
         userId,
         model: UserProfileEditRequest,
         avatar
     ): Promise<UserProfileViewModel> {
         let user = await this.find(userId);
+        let spheres = [];
+
+        model.sphereIds.forEach(async sId => {
+            let sphere = await this.sphereRepository.findOne(sId);
+            spheres.push(sphere);
+        });
 
         user.name = model.name;
         user.description = model.description;
+        user.spheres = spheres;
 
         if (await this.isUserEligibleToChangeRole(userId)) {
             const lastHistory = await this.findLastRoleChange(userId);
@@ -92,12 +117,7 @@ export class UsersService {
         await this.historyRepository.save(userRoleHistory);
 
         if (avatar !== undefined) {
-            const now = new Date();
-            fs.writeFileSync(
-                this.fileConfig.destination + now.getTime() + avatar.originalname,
-                avatar.buffer
-            );
-            user.avatarUrl = this.fileConfig.staticRoot + encodeURIComponent(now.getTime() + avatar.originalname);
+            user.avatarUrl = await this.saveFile(avatar);
         }
 
         if (model.password !== '' && model.password === model.confirm) {
@@ -112,7 +132,8 @@ export class UsersService {
             user.avatarUrl,
             user.description,
             user.points,
-            new RoleInfoViewModel(user.role.id, user.role.name, user.role.theme)
+            new RoleInfoViewModel(user.role.id, user.role.name, user.role.theme),
+            user.spheres.map(s => new SpherePreviewModel(s.id, s.name))
         );
     }
 
@@ -137,20 +158,76 @@ export class UsersService {
         });
     }
 
-    async createGroup(request: GroupCreateRequest): Promise<GroupCreateRequest> {
-        let group = new Group();
+    async findUsersByIds(userIds: number[]): Promise<User[]> {
         let users: User[] = [];
 
-        for (let userId of request.userIds) {
+        for (let userId of userIds) {
             let user = await this.userRepository.findOne(userId);
             users.push(user);
         }
 
+        return users;
+    }
+
+    async createGroup(request: GroupCreateRequest): Promise<GroupCreateRequest> {
+        let group = new Group();
+
         group.name = request.name;
-        group.users = users;
+        group.users = await this.findUsersByIds(request.userIds);
 
         await this.groupRepository.save(group);
 
         return new GroupCreateRequest(group.name, group.users.map(u => u.id));
+    }
+
+    async findGroups(): Promise<GroupPreviewModel[]> {
+        let groups = await this.groupRepository.find();
+
+        return groups.map(g => new GroupPreviewModel(g.id, g.name, g.avatarUrl));
+    }
+
+    async findGroupDetails(groupId: number): Promise<GroupViewModel> {
+        let group = await this.groupRepository.findOne(groupId);
+
+        let members = group.users.map(u => new GroupMemberViewModel(u.id, u.name));
+
+        return new GroupViewModel(
+            group.name,
+            group.avatarUrl,
+            group.description,
+            group.backgroundColor,
+            group.backgroundUrl,
+            group.innerBackgroundColor,
+            group.fontColor,
+            members
+        );
+    }
+
+    async editGroup(
+        id: number,
+        request: GroupEditRequest,
+        avatar,
+        background
+    ) {
+        let group = await this.groupRepository.findOne(id);
+
+        group.name = request.name;
+        group.users = await this.findUsersByIds(request.userIds);
+        group.description = request.description;
+        group.backgroundColor = request.backgroundColor;
+        group.innerBackgroundColor = request.innerBackgroundColor;
+        group.fontColor = request.fontColor;
+
+        if (avatar !== undefined) {
+            group.avatarUrl = await this.saveFile(avatar);
+        }
+
+        if (background !== undefined) {
+            group.backgroundUrl = await this.saveFile(background);
+        }
+    }
+
+    async findSpheres(): Promise<SpherePreviewModel[]> {
+        return (await this.sphereRepository.find()).map(s => new SpherePreviewModel(s.id, s.name));
     }
 }

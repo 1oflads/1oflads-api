@@ -11,6 +11,8 @@ export class UserProfileEditRequest {
 
     public description: string = '';
 
+    public sphereIds: number[] = [];
+
     public roleId: number = 0;
 
 }

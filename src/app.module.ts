@@ -15,6 +15,9 @@ import {UserRoleHistory} from "./users/entity/UserRoleHistory";
 import {ConfigModule} from "@nestjs/config";
 import FileConfig from "./config/FileConfig";
 import {RoleTheme} from "./users/entity/RoleTheme";
+import {ArticleModule} from "./articles/ArticleModule";
+import {Article} from "./articles/entity/Article";
+import {Sphere} from "./users/entity/Sphere";
 
 
 @Module({
@@ -30,12 +33,13 @@ import {RoleTheme} from "./users/entity/RoleTheme";
             username: 'root',
             password: '',
             database: 'dbname12',
-            entities: [User, Group, Rankable, Role, Challenge, UserRoleHistory, ChallengeApplication, GroupChallengePoll, RoleTheme],
+            entities: [User, Group, Rankable, Role, Challenge, UserRoleHistory, ChallengeApplication, GroupChallengePoll, RoleTheme, Article, Sphere],
             synchronize: true,
         }),
         UserModule,
         AuthModule,
-        ChallengeModule
+        ChallengeModule,
+        ArticleModule
     ],
     controllers: [],
     providers: [],
