@@ -19,6 +19,8 @@ import {RolesController} from "./controller/RolesController";
 import {GroupsController} from "./controller/GroupsController";
 import {Sphere} from "./entity/Sphere";
 import {SpheresController} from "./controller/SpheresController";
+import {GroupRoleRestriction} from "./entity/GroupRoleRestriction";
+import {GroupCalendar} from "./entity/GroupCalendar";
 
 @Module({
     imports: [
@@ -35,6 +37,8 @@ import {SpheresController} from "./controller/SpheresController";
             Challenge,
             ChallengeApplication,
             GroupChallengePoll,
+            GroupCalendar,
+            GroupRoleRestriction,
             UserRepository,
             ChallengeRepository,
             PollRepository

@@ -1,9 +1,12 @@
-import {Body, Controller, Get, Param, Post} from "@nestjs/common";
+import {Body, Controller, Get, Param, Patch, Post, Query} from "@nestjs/common";
 import {UsersService} from "../service/UsersService";
 import {GroupCreateRequest} from "../payload/GroupCreateRequest";
 import {GroupPreviewModel} from "../payload/GroupPreviewModel";
 import {GroupViewModel} from "../payload/GroupViewModel";
-import {Public} from "../../auth/decorator/AuthDecorator";
+import {AuthPrincipal, Public} from "../../auth/decorator/AuthDecorator";
+import {CalendarEventCreateRequest} from "../payload/CalendarEventCreateRequest";
+import {UserStrippedDTO} from "../../auth/payload/UserStrippedDTO";
+import {EventInfoViewModel} from "../payload/EventInfoViewModel";
 
 @Controller("/groups")
 export class GroupsController {
@@ -13,19 +16,48 @@ export class GroupsController {
     }
 
     @Post()
-    async group(@Body() request: GroupCreateRequest): Promise<GroupCreateRequest> {
+    async create(@Body() request: GroupCreateRequest): Promise<GroupCreateRequest> {
         return this.userService.createGroup(request);
     }
 
     @Get()
     @Public()
-    async groups(): Promise<GroupPreviewModel[]> {
+    async all(): Promise<GroupPreviewModel[]> {
         return this.userService.findGroups();
     }
 
     @Get("/:id")
     @Public()
-    async groupDetails(@Param() groupId: number): Promise<GroupViewModel> {
+    async details(@Param() groupId: number): Promise<GroupViewModel> {
         return this.userService.findGroupDetails(groupId)
     }
+
+    @Get("/:id/calendar")
+    async getCalendar(
+        @Param() id: number,
+        @AuthPrincipal() user: UserStrippedDTO,
+        @Query("from") from: Date,
+        @Query("to") to: Date
+    ): Promise<EventInfoViewModel[]> {
+        return this.userService.getGroupAppointments(
+            id,
+            user.id,
+            from,
+            to
+        );
+    }
+
+    @Patch("/:id/calendar")
+    async createAppointment(
+        @Param() id: number,
+        @Body() request: CalendarEventCreateRequest,
+        @AuthPrincipal() user: UserStrippedDTO
+    ): Promise<EventInfoViewModel> {
+        return this.userService.createGroupAppointment(
+            id,
+            user.id,
+            request
+        );
+    }
+
 }

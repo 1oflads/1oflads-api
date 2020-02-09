@@ -10,6 +10,7 @@ import {Rankable} from "./Rankable";
 import {GroupChallengePoll} from "../../challenge/entity/GroupChallengePoll";
 import {User} from "./User";
 import {Sphere} from "./Sphere";
+import {GroupCalendar} from "./GroupCalendar";
 
 @Entity()
 export class Group extends Rankable {
@@ -43,4 +44,7 @@ export class Group extends Rankable {
     @ManyToOne(type => Sphere)
     @JoinTable()
     public sphere: Sphere;
+
+    @OneToMany(type => GroupCalendar, calendar => calendar.group)
+    public calendar: Promise<GroupCalendar[]>;
 }
