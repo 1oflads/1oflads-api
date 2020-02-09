@@ -30,6 +30,7 @@ import {GroupCalendar} from "../entity/GroupCalendar";
 import {GroupRoleRestriction} from "../entity/GroupRoleRestriction";
 import {EventInfoViewModel} from "../payload/EventInfoViewModel";
 import {NotAnOwnerError} from "../../core/error/NotAnOwnerError";
+import {EventSlotAlreadyUsedError} from "../error/EventSlotAlreadyUsedError";
 
 @Injectable()
 export class UsersService {
@@ -244,15 +245,40 @@ export class UsersService {
         const group = this.groupRepository.findOne(groupId);
         const user = this.find(userId);
 
-        const restriction = await this.groupRoleRestrictionRepository.findOne({
-            where: {
-                role: new Promise(async () => (await user).role),
-                eventType: eventType
-            }
-        });
+        if (!(await user).isAdmin) {
+            const restriction = await this.groupRoleRestrictionRepository.findOne({
+                where: {
+                    role: new Promise(async () => (await user).role),
+                    eventType: eventType
+                }
+            });
 
-        if (!restriction || ! (await (await user).groups).some(g => g.id === groupId)) {
-            throw new ForbiddenException();
+            if (!restriction || !(await (await user).groups).some(g => g.id === groupId)) {
+                throw new ForbiddenException();
+            }
+        }
+
+        const otherEvents = await this.calendarRepository.find(
+            {
+                where: {
+                    from: MoreThanOrEqual(createEventModel.from),
+                    to: LessThanOrEqual(createEventModel.to)
+                }
+            }
+        );
+
+        for (const eventDetails of otherEvents) {
+            if (
+                (eventDetails.from.getHours() >= createEventModel.from.getHours()
+                    && eventDetails.from.getHours() <= createEventModel.to.getHours())
+                ||
+                (
+                    (eventDetails.to.getHours() >= createEventModel.from.getHours()
+                        && eventDetails.to.getHours() <= createEventModel.to.getHours())
+                )
+            ) {
+                throw new EventSlotAlreadyUsedError();
+            }
         }
 
         const event = new GroupCalendar();

@@ -33,7 +33,7 @@ import {Sphere} from "../users/entity/Sphere";
             UserRepository,
             ChallengeRepository,
             ChallengeApplicationRepository,
-            PollRepository
+            PollRepository,
         ]),
     ],
     providers: [UsersService, ChallengeService],
