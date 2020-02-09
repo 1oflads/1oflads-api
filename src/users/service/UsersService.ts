@@ -11,7 +11,7 @@ import {UserProfileEditRequest} from "../payload/UserProfileEditRequest";
 import {ConfigType} from "@nestjs/config";
 import FileConfig from "../../config/FileConfig";
 import {Role} from "../entity/Role";
-import {Repository} from "typeorm";
+import {In, Repository} from "typeorm";
 import {UserProfileViewModel} from "../payload/UserProfileViewModel";
 import {RoleInfoViewModel} from "../payload/RoleInfoViewModel";
 import {UserRoleHistory} from "../entity/UserRoleHistory";
@@ -87,16 +87,14 @@ export class UsersService {
         avatar
     ): Promise<UserProfileViewModel> {
         let user = await this.find(userId);
-        let spheres = [];
-
-        model.sphereIds.forEach(async sId => {
-            let sphere = await this.sphereRepository.findOne(sId);
-            spheres.push(sphere);
+        let spheres: Sphere[] = [];
+        let spheresPromise = this.sphereRepository.find({
+            id: In(model.sphereIds)
         });
 
         user.name = model.name;
         user.description = model.description;
-        user.spheres = spheres;
+        user.spheres = spheresPromise;
 
         if (await this.isUserEligibleToChangeRole(userId)) {
             const lastHistory = await this.findLastRoleChange(userId);
@@ -133,7 +131,8 @@ export class UsersService {
             user.description,
             user.points,
             new RoleInfoViewModel(user.role.id, user.role.name, user.role.theme),
-            user.spheres.map(s => new SpherePreviewModel(s.id, s.name))
+            (await user.groups).map(g => new GroupPreviewModel(g.id, g.name)),
+            (await user.spheres).map(s => new SpherePreviewModel(s.id, s.name))
         );
     }
 
@@ -173,11 +172,11 @@ export class UsersService {
         let group = new Group();
 
         group.name = request.name;
-        group.users = await this.findUsersByIds(request.userIds);
+        group.users = this.findUsersByIds(request.userIds);
 
         await this.groupRepository.save(group);
 
-        return new GroupCreateRequest(group.name, group.users.map(u => u.id));
+        return new GroupCreateRequest(group.name, (await group.users).map(u => u.id));
     }
 
     async findGroups(): Promise<GroupPreviewModel[]> {
@@ -189,7 +188,7 @@ export class UsersService {
     async findGroupDetails(groupId: number): Promise<GroupViewModel> {
         let group = await this.groupRepository.findOne(groupId);
 
-        let members = group.users.map(u => new GroupMemberViewModel(u.id, u.name));
+        let members = (await group.users).map(u => new GroupMemberViewModel(u.id, u.name));
 
         return new GroupViewModel(
             group.name,
@@ -212,7 +211,7 @@ export class UsersService {
         let group = await this.groupRepository.findOne(id);
 
         group.name = request.name;
-        group.users = await this.findUsersByIds(request.userIds);
+        group.users = this.findUsersByIds(request.userIds);
         group.description = request.description;
         group.backgroundColor = request.backgroundColor;
         group.innerBackgroundColor = request.innerBackgroundColor;

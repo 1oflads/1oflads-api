@@ -87,7 +87,7 @@ export class ChallengeService {
 
     async createPoll(groupId: number, userId: number, challengeId: number): Promise<GroupChallengePoll> {
         const user = await this.usersService.find(userId);
-        if (!user.groups.some(g => g.id === groupId)) {
+        if (!(await user.groups).some(g => g.id === groupId)) {
             throw new NotParticipantError();
         }
 
@@ -106,7 +106,7 @@ export class ChallengeService {
         }
 
         const group = await this.groupRepository.findOne(groupId);
-        const userCount = group.users.length;
+        const userCount = (await group.users).length;
         const positiveVotes = poll.map(vote => vote.isAccepted).filter(vote => vote).length;
 
         return ((positiveVotes / userCount) * 100) >= ChallengeService.MIN_NEEDED_VOTES_PERCENTAGE;
@@ -124,7 +124,7 @@ export class ChallengeService {
 
     async getGroupPoll(groupId: number, challengeId: number, userId: number): Promise<GroupChallengePoll[]> {
         const user = await this.usersService.find(userId);
-        if (!user.groups.some(g => g.id === groupId)) {
+        if (!(await user.groups).some(g => g.id === groupId)) {
             throw new NotAnOwnerError();
         }
 

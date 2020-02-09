@@ -10,6 +10,8 @@ import {RoleInfoViewModel} from "../payload/RoleInfoViewModel";
 import {UserRateViewModel} from "../entity/UserRateViewModel";
 import {GroupCreateRequest} from "../payload/GroupCreateRequest";
 import {ImageUpload} from "../../core/decorator/CoreDecorator";
+import {GroupPreviewModel} from "../payload/GroupPreviewModel";
+import {SpherePreviewModel} from "../payload/SpherePreviewModel";
 
 @Controller("/users")
 export class UsersController {
@@ -28,13 +30,16 @@ export class UsersController {
     @Get("/me")
     async profile(@AuthPrincipal() principal: UserStrippedDTO): Promise<UserProfileViewModel> {
         const user = await this.userService.find(principal.id);
+        console.log(user);
         return new UserProfileViewModel(
             user.username,
             user.name,
             user.avatarUrl,
             user.description,
             user.points,
-            new RoleInfoViewModel(user.role?.id, user.role?.name, user.role?.theme)
+            new RoleInfoViewModel(user.role?.id, user.role?.name, user.role?.theme),
+            (await user.groups).map(g => new GroupPreviewModel(g.id, g.name)),
+            (await user.spheres).map(s => new SpherePreviewModel(s.id, s.name))
         );
     }
 

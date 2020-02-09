@@ -37,9 +37,8 @@ export class Group extends Rankable {
     @Column()
     fontColor: string;
 
-    @ManyToMany(type => User, {eager: true})
-    @JoinTable()
-    public users: User[];
+    @ManyToMany(type => User)
+    public users: Promise<User[]>;
 
     @ManyToOne(type => Sphere)
     @JoinTable()

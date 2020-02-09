@@ -1,4 +1,11 @@
-import {ChildEntity, Column, ManyToMany, ManyToOne, OneToMany} from "typeorm";
+import {
+    ChildEntity,
+    Column,
+    JoinTable,
+    ManyToMany,
+    ManyToOne,
+    OneToMany
+} from "typeorm";
 import {Rankable} from "./Rankable";
 import {GroupChallengePoll} from "../../challenge/entity/GroupChallengePoll";
 import {Group} from "./Group";
@@ -24,10 +31,11 @@ export class User extends Rankable {
     public polls: GroupChallengePoll[];
 
     @ManyToMany(type => Group, group => group.users)
-    public groups: Group[];
+    @JoinTable({name: "user_groups"})
+    public groups: Promise<Group[]>;
 
     @ManyToMany(type => Sphere, sphere => sphere.users)
-    public spheres: Sphere[];
+    public spheres: Promise<Sphere[]>;
 
     @OneToMany(type => UserRoleHistory, uhr => uhr.user)
     public roleHistory: UserRoleHistory[];
