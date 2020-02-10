@@ -5,6 +5,8 @@ import {UserLoginRequest} from "../payload/UserLoginRequest";
 import {JwtService} from '@nestjs/jwt';
 import {UserLoginResponse} from "../payload/UserLoginResponse";
 import {UserStrippedDTO} from "../payload/UserStrippedDTO";
+import {Role} from "../../users/entity/Role";
+import {RoleTheme} from "../../users/entity/RoleTheme";
 
 @Injectable()
 export class AuthService {
@@ -17,7 +19,7 @@ export class AuthService {
     async validateUser(username: string, password: string): Promise<UserStrippedDTO> {
         const user = await this.usersService.findByUsername(username);
         if (user && bcrypt.compareSync(password, user.password)) {
-            return new UserStrippedDTO(user.id, user.username);
+            return new UserStrippedDTO(user.id, user.username, user.role?.name, user.role?.theme, user.isAdmin);
         }
 
         return null;
@@ -29,7 +31,7 @@ export class AuthService {
             throw new UnauthorizedException();
         }
 
-        return new UserLoginResponse(this.jwtService.sign({sub: user.id, username: user.username}));
+        return new UserLoginResponse(this.jwtService.sign({sub: user.id, username: user.username, role: user?.role, theme: user?.roleTheme, isAdmin: user.isAdmin}));
     }
 }
 

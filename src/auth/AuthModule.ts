@@ -16,6 +16,7 @@ import {ChallengeApplication} from "../challenge/entity/ChallengeApplication";
 import {GroupChallengePoll} from "../challenge/entity/GroupChallengePoll";
 import {ChallengeRepository} from "../challenge/repository/ChallengeRepository";
 import {PollRepository} from "../challenge/repository/PollRepository";
+import {UserRoleHistory} from "../users/entity/UserRoleHistory";
 
 @Module({
     imports: [
@@ -25,6 +26,7 @@ import {PollRepository} from "../challenge/repository/PollRepository";
         }),
         TypeOrmModule.forFeature([
             User,
+            UserRoleHistory,
             Group,
             Rankable,
             Role,

@@ -1,6 +1,7 @@
 import {Column, Entity, OneToMany, PrimaryGeneratedColumn} from "typeorm";
-import {ChallengeApplication, ValidationStatus} from "./ChallengeApplication";
+import {ChallengeApplication} from "./ChallengeApplication";
 import {GroupChallengePoll} from "./GroupChallengePoll";
+import {ValidationStatus} from "./ValidationStatus";
 
 @Entity()
 export class Challenge {

@@ -12,22 +12,31 @@ import {Rankable} from "./entity/Rankable";
 import {GroupChallengePoll} from "../challenge/entity/GroupChallengePoll";
 import {ChallengeRepository} from "../challenge/repository/ChallengeRepository";
 import {PollRepository} from "../challenge/repository/PollRepository";
+import {ConfigModule} from "@nestjs/config";
+import FileConfig from "../config/FileConfig";
+import {UserRoleHistory} from "./entity/UserRoleHistory";
+import {RolesController} from "./controller/RolesController";
 
 @Module({
-    imports: [TypeOrmModule.forFeature([
-        User,
-        Group,
-        Rankable,
-        Role,
-        Challenge,
-        ChallengeApplication,
-        GroupChallengePoll,
-        UserRepository,
-        ChallengeRepository,
-        PollRepository
-    ])],
+    imports: [
+        ConfigModule.forRoot({
+            load: [FileConfig]
+        }),
+        TypeOrmModule.forFeature([
+            User,
+            UserRoleHistory,
+            Group,
+            Rankable,
+            Role,
+            Challenge,
+            ChallengeApplication,
+            GroupChallengePoll,
+            UserRepository,
+            ChallengeRepository,
+            PollRepository
+        ])],
     providers: [UsersService],
-    controllers: [UsersController]
+    controllers: [UsersController, RolesController]
 })
 export class UserModule {
 

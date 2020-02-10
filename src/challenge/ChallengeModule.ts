@@ -14,12 +14,15 @@ import {ChallengeService} from "./service/ChallengeService";
 import {ChallengeController} from "./controller/ChallengeController";
 import {UserModule} from "../users/UserModule";
 import {UsersService} from "../users/service/UsersService";
+import {UserRoleHistory} from "../users/entity/UserRoleHistory";
+import {ChallengeApplicationRepository} from "./repository/ChallengeApplicationRepository";
 
 @Module({
     imports: [
         TypeOrmModule.forFeature([
             User,
             Group,
+            UserRoleHistory,
             Rankable,
             Role,
             Challenge,
@@ -27,6 +30,7 @@ import {UsersService} from "../users/service/UsersService";
             GroupChallengePoll,
             UserRepository,
             ChallengeRepository,
+            ChallengeApplicationRepository,
             PollRepository
         ]),
     ],

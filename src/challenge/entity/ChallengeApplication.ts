@@ -1,12 +1,7 @@
 import {Column, Entity, ManyToOne, PrimaryGeneratedColumn} from "typeorm";
 import {Challenge} from "./Challenge";
 import {Rankable} from "../../users/entity/Rankable";
-
-export enum ValidationStatus {
-    PENDING,
-    ACCEPTED,
-    REJECTED
-}
+import {ValidationStatus} from "./ValidationStatus";
 
 @Entity()
 export class ChallengeApplication {
@@ -14,10 +9,10 @@ export class ChallengeApplication {
     @PrimaryGeneratedColumn()
     public id: number;
 
-    @ManyToOne(type => Rankable, rankable => rankable.challengeApplications)
+    @ManyToOne(type => Rankable, rankable => rankable.challengeApplications, {eager: true})
     public doer: Rankable;
 
-    @ManyToOne(type => Challenge, challenge => challenge.challengeApplications)
+    @ManyToOne(type => Challenge, challenge => challenge.challengeApplications, {eager: true})
     public challenge: Challenge;
 
     @Column()

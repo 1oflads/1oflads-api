@@ -20,6 +20,6 @@ export class UserRoleHistory {
     @Column()
     public selectedOn: Date;
 
-    @Column()
+    @Column({nullable: true})
     public finishedOn: Date;
 }

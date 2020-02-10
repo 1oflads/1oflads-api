@@ -1,15 +1,26 @@
-import {Body, Controller, Get, Param, Patch, Post, Query} from "@nestjs/common";
+import {
+    Body,
+    Controller,
+    Get,
+    Param,
+    Patch,
+    Post,
+    Query,
+    UploadedFile, UseInterceptors
+} from "@nestjs/common";
 import {Challenge} from "../entity/Challenge";
 import {ChallengeService} from "../service/ChallengeService";
 import {ChallengeApplication} from "../entity/ChallengeApplication";
 import {RejectApplicationRequest} from "../payload/RejectApplicationRequest";
-import {AuthPrincipal} from "../../auth/decorator/AuthDecorator";
+import {AuthPrincipal, Public} from "../../auth/decorator/AuthDecorator";
 import {UserStrippedDTO} from "../../auth/payload/UserStrippedDTO";
 import {ChallengeApplicationRequest} from "../payload/ChallengeApplicationRequest";
 import {GroupChallengePoll} from "../entity/GroupChallengePoll";
 import {GroupPollVoteRequest} from "../payload/GroupPollVoteRequest";
 import {GroupNeedsPollOrQuorumError} from "../error/GroupNeedsPollOrQuorumError";
 import {ChallengeCreateRequest} from "../payload/ChallengeCreateRequest";
+import {FileInterceptor} from "@nestjs/platform-express";
+import {ChallengeApplicationViewModel} from "../entity/ChallengeApplicationViewModel";
 
 @Controller("/challenges")
 export class ChallengeController {
@@ -25,12 +36,14 @@ export class ChallengeController {
     }
 
     @Get()
-    async filterAll(@Query("type") type: string): Promise<Challenge[]> {
-        if (type === 'waiting') {
-            return this.challengeService.findAllWaiting();
-        }
-
+    @Public()
+    async all(): Promise<Challenge[]> {
         return this.challengeService.findAllAccepted();
+    }
+
+    @Get("/waiting")
+    async waiting(): Promise<Challenge[]> {
+            return this.challengeService.findAllWaiting();
     }
 
     @Patch("/:id/accept")
@@ -44,13 +57,21 @@ export class ChallengeController {
     }
 
     @Get("/applications/waiting")
-    async getWaitingApplications(): Promise<ChallengeApplication[]> {
+    async getWaitingApplications(): Promise<ChallengeApplicationViewModel[]> {
         return this.challengeService.findWaitingApplications();
     }
 
     @Patch("/applications/:id/accept")
     async acceptApplication(@Param("id") applicationId: number): Promise<ChallengeApplication> {
-        return this.challengeService.acceptApplication(applicationId)
+        return this.challengeService.acceptApplication(applicationId);
+    }
+
+    @Get("/applications/:id/:status")
+    async getUserApplicationsByStatus(
+        @Param("id") userId: number,
+        @Param("status") status: number
+    ) {
+        return this.challengeService.findApplicationsByUser(userId, status);
     }
 
     @Patch("/applications/:id/reject")
@@ -61,20 +82,24 @@ export class ChallengeController {
         return this.challengeService.rejectApplication(applicationId, reason);
     }
 
-    @Post("/:id/application")
+    @Post("/:id/applications")
+    @UseInterceptors(FileInterceptor("proof"))
     async applyForChallenge(
         @Param("id") challengeId: number,
         @AuthPrincipal() user: UserStrippedDTO,
-        @Body() request: ChallengeApplicationRequest
+        @Body() request: ChallengeApplicationRequest,
+        @UploadedFile() proof
     ): Promise<ChallengeApplication> {
-        if (request.groupId && !(await this.challengeService.canGroupApply(request.groupId, challengeId))) {
+
+        if (request.groupId > 0 && !(await this.challengeService.canGroupApply(request.groupId, challengeId))) {
             throw new GroupNeedsPollOrQuorumError();
         }
 
         return this.challengeService.apply(
-            request.groupId || user.id,
+            request.groupId > 0 ? request.groupId : user.id,
             challengeId,
-            request
+            request,
+            proof
         );
     }
 
@@ -114,6 +139,4 @@ export class ChallengeController {
     ): Promise<GroupChallengePoll[]> {
         return this.challengeService.getGroupPoll(groupId, challengeId, user.id);
     }
-
-
 }

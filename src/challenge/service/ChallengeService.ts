@@ -1,7 +1,7 @@
-import {Injectable} from "@nestjs/common";
+import {Inject, Injectable} from "@nestjs/common";
 import {InjectRepository} from "@nestjs/typeorm";
 import {Challenge} from "../entity/Challenge";
-import {ChallengeApplication, ValidationStatus} from "../entity/ChallengeApplication";
+import {ChallengeApplication} from "../entity/ChallengeApplication";
 import {ChallengeRepository} from "../repository/ChallengeRepository";
 import {ChallengeApplicationRequest} from "../payload/ChallengeApplicationRequest";
 import {UsersService} from "../../users/service/UsersService";
@@ -19,6 +19,12 @@ import {GroupAlreadyHasPoll} from "../error/GroupAlreadyHasPoll";
 import {Group} from "../../users/entity/Group";
 import {NotAnOwnerError} from "../../core/error/NotAnOwnerError";
 import {ChallengeCreateRequest} from "../payload/ChallengeCreateRequest";
+import {ValidationStatus} from "../entity/ValidationStatus";
+import {ChallengeApplicationRepository} from "../repository/ChallengeApplicationRepository";
+import FileConfig from "../../config/FileConfig";
+import {ConfigType} from "@nestjs/config";
+import * as fs from "fs";
+import {ChallengeApplicationViewModel} from "../entity/ChallengeApplicationViewModel";
 
 @Injectable()
 export class ChallengeService {
@@ -28,9 +34,11 @@ export class ChallengeService {
 
     constructor(
         @InjectRepository(Challenge) private readonly challengeRepository: ChallengeRepository,
+        @InjectRepository(ChallengeApplication) private readonly applicationRepository: ChallengeApplicationRepository,
         @InjectRepository(Rankable) private readonly rankableRepsitory: Repository<Rankable>,
         @InjectRepository(Group) private readonly groupRepository: Repository<Group>,
         @InjectRepository(GroupChallengePoll) private readonly pollRepository: PollRepository,
+        @Inject(FileConfig.KEY) private readonly fileConfig: ConfigType<typeof FileConfig>,
         private readonly usersService: UsersService
     ) {
     }
@@ -44,6 +52,9 @@ export class ChallengeService {
         challenge.endsOn = request.endsOn;
         challenge.validationStatus = isAdmin ? ValidationStatus.ACCEPTED : ValidationStatus.PENDING;
 
+        console.log(this.challengeRepository.target);
+        console.log(this.pollRepository.target);
+
         return this.challengeRepository.save(challenge);
     }
 
@@ -55,16 +66,23 @@ export class ChallengeService {
         return this.challengeRepository.findAllWaiting();
     }
 
-    async findWaitingApplications(): Promise<ChallengeApplication[]> {
-        return this.challengeRepository.findWaitingApplications();
+    async findWaitingApplications(): Promise<ChallengeApplicationViewModel[]> {
+        return (await this.applicationRepository.findWaiting())
+            .map(c => new ChallengeApplicationViewModel(
+                c.id,
+                c.challenge,
+                c.completedOn,
+                c.proofDescription,
+                c.proofUrl
+            ));
     }
 
     async findByUser(userId: number, validationStatus: number): Promise<Challenge[]> {
-        return this.challengeRepository.findByUser(userId, ChallengeService.getStatus(validationStatus));
+        return this.applicationRepository.findChallengesByUser(userId, ChallengeService.getStatus(validationStatus));
     }
 
     async findApplicationsByUser(userId: number, validationStatus: number): Promise<ChallengeApplication[]> {
-        return this.challengeRepository.findApplicationsByUser(userId, ChallengeService.getStatus(validationStatus));
+        return this.applicationRepository.findByUser(userId, ChallengeService.getStatus(validationStatus));
     }
 
     async createPoll(groupId: number, userId: number, challengeId: number): Promise<GroupChallengePoll> {
@@ -113,7 +131,7 @@ export class ChallengeService {
         return this.pollRepository.findByChallengeAndGroup(groupId, challengeId);
     }
 
-    async apply(doerId: number, challengeId: number, applicationRequest: ChallengeApplicationRequest)
+    async apply(doerId: number, challengeId: number, applicationRequest: ChallengeApplicationRequest, proof)
         : Promise<ChallengeApplication> {
         await this.checkWaitingThreshold(doerId, challengeId);
         await this.checkRejectedThreshold(doerId, challengeId);
@@ -126,27 +144,35 @@ export class ChallengeService {
         application.validationStatus = ValidationStatus.PENDING;
         application.doer = await this.rankableRepsitory.findOne(doerId);
         application.proofDescription = applicationRequest.proofDescription;
-        application.proofUrl = applicationRequest.proofUrl;
 
-        return this.challengeRepository.save(application);
+        if (proof !== undefined) {
+            const now = new Date();
+            fs.writeFileSync(
+                this.fileConfig.destination + now.getTime() + proof.originalname,
+                proof.buffer
+            );
+            application.proofUrl = this.fileConfig.staticRoot + encodeURIComponent(now.getTime() + proof.originalname);
+        }
+
+        return this.applicationRepository.save(application);
     }
 
     async acceptApplication(applicationId: number): Promise<ChallengeApplication> {
-        const application = await this.challengeRepository.findApplicationById(applicationId);
+        const application = await this.applicationRepository.findOne(applicationId);
         application.validationStatus = ValidationStatus.ACCEPTED;
         application.doer.points += application.challenge.points;
 
         await this.rankableRepsitory.save(application.doer);
 
-        return this.challengeRepository.saveApplication(application);
+        return this.applicationRepository.save(application);
     }
 
     async rejectApplication(applicationId: number, reason: RejectApplicationRequest): Promise<ChallengeApplication> {
-        const application = await this.challengeRepository.findApplicationById(applicationId);
+        const application = await this.applicationRepository.findOne(applicationId);
         application.validationStatus = ValidationStatus.REJECTED;
         application.validationDescription = reason.description;
 
-        return this.challengeRepository.saveApplication(application);
+        return this.applicationRepository.save(application);
     }
 
     async acceptChallenge(challengeId: number): Promise<Challenge> {
@@ -165,9 +191,9 @@ export class ChallengeService {
 
     private static getStatus(validationStatus: number): ValidationStatus {
         let status = ValidationStatus.REJECTED;
-        if (validationStatus === ValidationStatus.PENDING) {
+        if (validationStatus == ValidationStatus.PENDING.valueOf()) {
             status = ValidationStatus.PENDING;
-        } else if (validationStatus === ValidationStatus.ACCEPTED) {
+        } else if (validationStatus == ValidationStatus.ACCEPTED.valueOf()) {
             status = ValidationStatus.ACCEPTED;
         }
 
@@ -175,7 +201,7 @@ export class ChallengeService {
     }
 
     private async checkWaitingThreshold(doerId: number, challengeId: number) {
-        const waiting = await this.challengeRepository.findApplicationsByUserAndChallenge(
+        const waiting = await this.applicationRepository.findByUserAndChallenge(
             doerId,
             challengeId,
             ValidationStatus.PENDING
@@ -187,7 +213,7 @@ export class ChallengeService {
     }
 
     private async checkRejectedThreshold(doerId: number, challengeId: number) {
-        const rejected = await this.challengeRepository.findApplicationsByUserAndChallenge(
+        const rejected = await this.applicationRepository.findByUserAndChallenge(
             doerId,
             challengeId,
             ValidationStatus.REJECTED
@@ -199,7 +225,7 @@ export class ChallengeService {
     }
 
     private async checkAccepted(doerId: number, challengeId: number) {
-        const accepted = await this.challengeRepository.findApplicationsByUserAndChallenge(
+        const accepted = await this.applicationRepository.findByUserAndChallenge(
             doerId,
             challengeId,
             ValidationStatus.ACCEPTED

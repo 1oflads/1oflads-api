@@ -7,7 +7,6 @@ import {Role} from "./Role";
 
 @ChildEntity()
 export class User extends Rankable {
-
     @Column()
     public name: string;
 
@@ -17,12 +16,13 @@ export class User extends Rankable {
     @Column()
     public password: string;
 
+    @Column()
+    isAdmin: boolean = false;
+
     @OneToMany(type => GroupChallengePoll, poll => poll.user)
     public polls: GroupChallengePoll[];
 
-    @ManyToMany(type => Group, group => group.users, {
-        eager: true
-    })
+    @ManyToMany(type => Group, group => group.users)
     public groups: Group[];
 
     @OneToMany(type => UserRoleHistory, uhr => uhr.user)
@@ -35,4 +35,7 @@ export class User extends Rankable {
 
     @Column()
     public description: string;
+
+    @Column()
+    public avatarUrl: string;
 }

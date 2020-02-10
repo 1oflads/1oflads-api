@@ -7,4 +7,7 @@ export class UserRegisterRequest {
 
     @IsNotEmpty()
     public password: string;
+
+    @IsNotEmpty()
+    public confirm: string;
 }

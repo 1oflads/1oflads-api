@@ -17,6 +17,6 @@ export class JWTAuthStrategy extends PassportStrategy(Strategy) {
     }
 
     async validate(payload: JWTPayload): Promise<UserStrippedDTO> {
-        return new UserStrippedDTO(payload.sub, payload.username);
+        return new UserStrippedDTO(payload.sub, payload.username, payload.role, payload.theme);
     }
 }
