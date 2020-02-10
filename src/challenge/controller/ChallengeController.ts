@@ -1,13 +1,4 @@
-import {
-    Body,
-    Controller,
-    Get,
-    Param,
-    Patch,
-    Post,
-    Query,
-    UploadedFile, UseInterceptors
-} from "@nestjs/common";
+import {Body, Controller, Get, Param, Patch, Post, UploadedFile, UseInterceptors} from "@nestjs/common";
 import {Challenge} from "../entity/Challenge";
 import {ChallengeService} from "../service/ChallengeService";
 import {ChallengeApplication} from "../entity/ChallengeApplication";
@@ -19,8 +10,8 @@ import {GroupChallengePoll} from "../entity/GroupChallengePoll";
 import {GroupPollVoteRequest} from "../payload/GroupPollVoteRequest";
 import {GroupNeedsPollOrQuorumError} from "../error/GroupNeedsPollOrQuorumError";
 import {ChallengeCreateRequest} from "../payload/ChallengeCreateRequest";
-import {FileInterceptor} from "@nestjs/platform-express";
 import {ChallengeApplicationViewModel} from "../entity/ChallengeApplicationViewModel";
+import {ImageUpload} from "../../core/decorator/CoreDecorator";
 
 @Controller("/challenges")
 export class ChallengeController {
@@ -43,7 +34,7 @@ export class ChallengeController {
 
     @Get("/waiting")
     async waiting(): Promise<Challenge[]> {
-            return this.challengeService.findAllWaiting();
+        return this.challengeService.findAllWaiting();
     }
 
     @Patch("/:id/accept")
@@ -83,7 +74,7 @@ export class ChallengeController {
     }
 
     @Post("/:id/applications")
-    @UseInterceptors(FileInterceptor("proof"))
+    @UseInterceptors(ImageUpload("proof"))
     async applyForChallenge(
         @Param("id") challengeId: number,
         @AuthPrincipal() user: UserStrippedDTO,

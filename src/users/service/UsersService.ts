@@ -101,7 +101,7 @@ export class UsersService {
         }
 
         if (model.password !== '' && model.password === model.confirm) {
-            user.password = await bcrypt.hash(model.password, 10);
+            user.password = bcrypt.hashSync(model.password, 10);
         }
 
         user = await this.userRepository.save(user);
