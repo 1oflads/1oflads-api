@@ -1,13 +1,12 @@
 import {
     Column,
-    Entity, JoinTable,
+    Entity,
     ManyToMany,
     OneToMany,
     PrimaryGeneratedColumn
 } from "typeorm";
-import {PrimaryGeneratedColumnType} from "typeorm/driver/types/ColumnTypes";
-import {User} from "./User";
-import {Group} from "./Group";
+import {Rankable} from "./Rankable";
+import {UserSphere} from "./UserSphere";
 
 @Entity()
 export class Sphere {
@@ -20,10 +19,8 @@ export class Sphere {
     @Column()
     public description: string;
 
-    @ManyToMany(type => User, user => user.spheres)
-    @JoinTable()
-    public users: User[];
+    @OneToMany(type => UserSphere, userSphere => userSphere.sphere)
+    public users: Promise<UserSphere[]>;
 
-    @OneToMany(type => Group, group => group.sphere)
-    public groups: Group[];
+
 }

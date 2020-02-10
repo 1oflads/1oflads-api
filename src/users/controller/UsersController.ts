@@ -1,4 +1,13 @@
-import {Body, Controller, Get, Patch, Post, UploadedFile, UseInterceptors} from "@nestjs/common";
+import {
+    Body,
+    Controller,
+    Get,
+    Param,
+    Patch,
+    Post,
+    UploadedFile,
+    UseInterceptors
+} from "@nestjs/common";
 import {UserRegisterRequest} from "../payload/UserRegisterRequest";
 import {UsersService} from "../service/UsersService";
 import {User} from "../entity/User";
@@ -30,7 +39,7 @@ export class UsersController {
     @Get("/me")
     async profile(@AuthPrincipal() principal: UserStrippedDTO): Promise<UserProfileViewModel> {
         const user = await this.userService.find(principal.id);
-        console.log(user);
+        const spheres = await this.userService.getSpheresByUserId(principal.id);
         return new UserProfileViewModel(
             user.username,
             user.name,
@@ -39,7 +48,7 @@ export class UsersController {
             user.points,
             new RoleInfoViewModel(user.role?.id, user.role?.name, user.role?.theme),
             (await user.groups).map(g => new GroupPreviewModel(g.id, g.name)),
-            (await user.spheres).map(s => new SpherePreviewModel(s.id, s.name))
+            spheres.map(s => new SpherePreviewModel(s.id, s.name))
         );
     }
 
@@ -57,6 +66,11 @@ export class UsersController {
     @Get("/rating")
     async rating(): Promise<UserRateViewModel[]> {
         return this.userService.findAllSorted();
+    }
+
+    @Get('/:id/groups')
+    async userGroups(@Param() id: number): Promise<GroupPreviewModel[]> {
+        return this.userService.findUserGroups(id);
     }
 
 }

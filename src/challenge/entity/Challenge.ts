@@ -2,18 +2,23 @@ import {Column, Entity, OneToMany, PrimaryGeneratedColumn} from "typeorm";
 import {ChallengeApplication} from "./ChallengeApplication";
 import {GroupChallengePoll} from "./GroupChallengePoll";
 import {ValidationStatus} from "./ValidationStatus";
+import {ChallengeType} from "./ChallengeType";
+import {GroupApplicationCandidate} from "./GroupApplicationCandidate";
 
 @Entity()
 export class Challenge {
 
     @PrimaryGeneratedColumn()
-    public id: Number;
+    public id: number;
 
     @Column()
     public name: string;
 
     @Column()
     public description: string;
+
+    @Column()
+    public challengeType: ChallengeType;
 
     @Column()
     public points: number;
@@ -30,6 +35,6 @@ export class Challenge {
     @OneToMany(type => ChallengeApplication, application => application.challenge)
     public challengeApplications: ChallengeApplication[];
 
-    @OneToMany(type => GroupChallengePoll, poll => poll.challenge)
-    public polls: GroupChallengePoll[];
+    @OneToMany(type => GroupApplicationCandidate, gac => gac.challenge)
+    public groupApplicationCandidates: Promise<GroupApplicationCandidate>;
 }

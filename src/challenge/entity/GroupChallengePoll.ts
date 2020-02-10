@@ -1,6 +1,6 @@
 import {Column, Entity, ManyToOne, PrimaryGeneratedColumn} from "typeorm";
-import {Challenge} from "./Challenge";
 import {User} from "../../users/entity/User";
+import {GroupApplicationCandidate} from "./GroupApplicationCandidate";
 
 @Entity()
 export class GroupChallengePoll {
@@ -8,15 +8,13 @@ export class GroupChallengePoll {
     @PrimaryGeneratedColumn()
     public id: number;
 
-    @Column()
-    public groupId: number;
+    @ManyToOne(type => GroupApplicationCandidate, gac => gac.polls)
+    public applicationCandidate: Promise<GroupApplicationCandidate>;
 
-    @ManyToOne(type => Challenge, challenge => challenge.polls)
-    public challenge: Challenge;
-
-    @ManyToOne(type => User, user => user.polls)
-    public user: User;
+    @ManyToOne(type => User)
+    public user: Promise<User>;
 
     @Column()
     public isAccepted: boolean;
 }
+

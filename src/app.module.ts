@@ -21,6 +21,8 @@ import {Sphere} from "./users/entity/Sphere";
 import {CoreModule} from "./core/CoreModule";
 import {GroupCalendar} from "./users/entity/GroupCalendar";
 import {GroupRoleRestriction} from "./users/entity/GroupRoleRestriction";
+import {GroupApplicationCandidate} from "./challenge/entity/GroupApplicationCandidate";
+import {UserSphere} from "./users/entity/UserSphere";
 
 
 @Module({
@@ -36,7 +38,7 @@ import {GroupRoleRestriction} from "./users/entity/GroupRoleRestriction";
             username: 'root',
             password: '',
             database: '1oflads',
-            entities: [User, Group, Rankable, Role, Challenge, UserRoleHistory, ChallengeApplication, GroupChallengePoll, RoleTheme, Article, Sphere, GroupCalendar, GroupRoleRestriction],
+            entities: [User, Group, Rankable, Role, Challenge, UserRoleHistory, ChallengeApplication, GroupChallengePoll, RoleTheme, Article, Sphere, GroupCalendar, GroupRoleRestriction, GroupApplicationCandidate, UserSphere],
             synchronize: true,
         }),
         UserModule,

@@ -18,6 +18,9 @@ import {ChallengeRepository} from "../challenge/repository/ChallengeRepository";
 import {PollRepository} from "../challenge/repository/PollRepository";
 import {UserRoleHistory} from "../users/entity/UserRoleHistory";
 import {Sphere} from "../users/entity/Sphere";
+import {GroupCalendar} from "../users/entity/GroupCalendar";
+import {GroupRoleRestriction} from "../users/entity/GroupRoleRestriction";
+import {UserSphere} from "../users/entity/UserSphere";
 
 @Module({
     imports: [
@@ -37,7 +40,10 @@ import {Sphere} from "../users/entity/Sphere";
             GroupChallengePoll,
             UserRepository,
             ChallengeRepository,
-            PollRepository
+            PollRepository,
+            GroupCalendar,
+            GroupRoleRestriction,
+            UserSphere
         ])
     ],
     providers: [UsersService, AuthService, JWTAuthStrategy],

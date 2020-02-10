@@ -4,6 +4,7 @@ import {UserStrippedDTO} from "../../auth/payload/UserStrippedDTO";
 import {Challenge} from "../entity/Challenge";
 import {ChallengeApplication} from "../entity/ChallengeApplication";
 import {ChallengeService} from "../service/ChallengeService";
+import {ChallengeApplicationViewModel} from "../entity/ChallengeApplicationViewModel";
 
 @Controller()
 export class UsersChallengeController {
@@ -21,7 +22,7 @@ export class UsersChallengeController {
 
     @Get("/users/challengeApplications")
     async myChallengeApplications(@AuthPrincipal() user: UserStrippedDTO, @Query("status") status: number)
-        : Promise<ChallengeApplication[]> {
+        : Promise<ChallengeApplicationViewModel[]> {
         return this.challengeService.findApplicationsByUser(user.id, status);
     }
 }

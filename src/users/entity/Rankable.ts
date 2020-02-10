@@ -1,6 +1,7 @@
 import {Column, Entity, JoinTable, ManyToMany, OneToMany, PrimaryGeneratedColumn, TableInheritance} from "typeorm";
 import {Role} from "./Role";
 import {ChallengeApplication} from "../../challenge/entity/ChallengeApplication";
+import {Sphere} from "./Sphere";
 
 
 @Entity()

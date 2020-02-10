@@ -31,6 +31,7 @@ import {GroupRoleRestriction} from "../entity/GroupRoleRestriction";
 import {EventInfoViewModel} from "../payload/EventInfoViewModel";
 import {NotAnOwnerError} from "../../core/error/NotAnOwnerError";
 import {EventSlotAlreadyUsedError} from "../error/EventSlotAlreadyUsedError";
+import {UserSphere} from "../entity/UserSphere";
 
 @Injectable()
 export class UsersService {
@@ -40,6 +41,7 @@ export class UsersService {
         @InjectRepository(Role) private readonly roleRepository: Repository<Role>,
         @InjectRepository(UserRoleHistory) private readonly historyRepository: Repository<UserRoleHistory>,
         @InjectRepository(Group) private readonly groupRepository: Repository<Group>,
+        @InjectRepository(UserSphere) private readonly userSphereRepository: Repository<UserSphere>,
         @InjectRepository(Sphere) private readonly sphereRepository: Repository<Sphere>,
         @InjectRepository(GroupCalendar) private readonly calendarRepository: Repository<GroupCalendar>,
         @InjectRepository(GroupRoleRestriction) private readonly groupRoleRestrictionRepository: Repository<GroupRoleRestriction>,
@@ -68,7 +70,11 @@ export class UsersService {
 
         model.password = bcrypt.hashSync(model.password, 10);
 
-        return this.userRepository.save(Object.assign(new User(), model));
+        const user = await this.userRepository.save(Object.assign(new User(), model));
+        user.userId = user.id;
+        await this.userRepository.save(user);
+
+        return user;
     }
 
     async findByUsername(username: string): Promise<User> {
@@ -76,7 +82,15 @@ export class UsersService {
     }
 
     async find(userId: number): Promise<User> {
-        return this.userRepository.findOne(userId);
+        const user = this.userRepository.findOne(
+            {
+                where: {
+                    userId: userId
+                }
+            }
+        );
+
+        return user;
     }
 
     async saveFile(file) {
@@ -97,13 +111,16 @@ export class UsersService {
     ): Promise<UserProfileViewModel> {
         let user = await this.find(userId);
         let spheres: Sphere[] = [];
-        let spheresPromise = this.sphereRepository.find({
-            id: In(model.sphereIds)
+
+        model.sphereIds.split(",").forEach(async sphereId => {
+           const userSphere = new UserSphere();
+           userSphere.userId = userId;
+           await (userSphere.sphere = this.sphereRepository.findOne(sphereId));
+           await this.userSphereRepository.save(userSphere);
         });
 
         user.name = model.name;
         user.description = model.description;
-        user.spheres = spheresPromise;
 
         if (await this.isUserEligibleToChangeRole(userId)) {
             const lastHistory = await this.findLastRoleChange(userId);
@@ -121,6 +138,7 @@ export class UsersService {
         userRoleHistory.points = user.points;
         userRoleHistory.selectedOn = new Date();
         userRoleHistory.finishedOn = null;
+
         await this.historyRepository.save(userRoleHistory);
 
         if (avatar !== undefined) {
@@ -132,7 +150,15 @@ export class UsersService {
         }
 
         user = await this.userRepository.save(user);
+        console.log("GROUPI")
+        console.log((await user.groups));
+        console.log("SFERII")
 
+        const spheresResult = await this.getSpheresByUserId(userId);
+
+        console.log(spheresResult);
+
+        console.log("finish")
         return new UserProfileViewModel(
             user.username,
             user.name,
@@ -141,8 +167,26 @@ export class UsersService {
             user.points,
             new RoleInfoViewModel(user.role.id, user.role.name, user.role.theme),
             (await user.groups).map(g => new GroupPreviewModel(g.id, g.name)),
-            (await user.spheres).map(s => new SpherePreviewModel(s.id, s.name))
+            spheresResult.map(s => new SpherePreviewModel(s.id, s.name))
         );
+    }
+
+    async getSpheresByUserId(userId) {
+        const userSpheres = await this.userSphereRepository.find(
+            {
+                where: {
+                    userId: userId
+                }
+            }
+        );
+
+        const spheresResult = [];
+        console.log(userSpheres);
+        for (const userSphere of userSpheres) {
+            const sphere = await userSphere.sphere;
+            spheresResult.push(sphere);
+        }
+        return spheresResult;
     }
 
     async findAllRoles(): Promise<RoleInfoViewModel[]> {
@@ -185,6 +229,10 @@ export class UsersService {
 
         await this.groupRepository.save(group);
 
+        group.groupId = group.id;
+
+        await this.groupRepository.save(group);
+
         return new GroupCreateRequest(group.name, (await group.users).map(u => u.id));
     }
 
@@ -194,8 +242,15 @@ export class UsersService {
         return groups.map(g => new GroupPreviewModel(g.id, g.name, g.avatarUrl));
     }
 
+    async findUserGroups(userId: number): Promise<GroupPreviewModel[]> {
+        let user = await this.userRepository.findOne(userId);
+
+
+        return (await user.groups).map(g => new GroupPreviewModel(g.id, g.name, g.avatarUrl));
+    }
+
     async findGroupDetails(groupId: number): Promise<GroupViewModel> {
-        let group = await this.groupRepository.findOne(groupId);
+        let group = await this.findGroup(groupId);
 
         let members = (await group.users).map(u => new GroupMemberViewModel(u.id, u.name));
 
@@ -217,7 +272,7 @@ export class UsersService {
         avatar,
         background
     ) {
-        let group = await this.groupRepository.findOne(id);
+        let group = await this.findGroup(id);
 
         group.name = request.name;
         group.users = this.findUsersByIds(request.userIds);
@@ -242,7 +297,7 @@ export class UsersService {
     async createGroupAppointment(groupId: number, userId: number, createEventModel: CalendarEventCreateRequest)
         : Promise<EventInfoViewModel> {
         const eventType = UsersService.getEventType(createEventModel.typeId);
-        const group = this.groupRepository.findOne(groupId);
+        const group = this.findGroup(groupId);
         const user = this.find(userId);
 
         if (!(await user).isAdmin) {
@@ -350,4 +405,11 @@ export class UsersService {
         return EventType.SHOW;
     }
 
+    private async findGroup(id: number): Promise<Group> {
+        return this.groupRepository.findOne({
+            where: {
+                groupId: id
+            }
+        });
+    }
 }

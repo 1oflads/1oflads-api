@@ -13,7 +13,7 @@ export class ChallengeApplicationRepository extends Repository<ChallengeApplicat
     async findByUser(userId: number, validationStatus: ValidationStatus): Promise<ChallengeApplication[]> {
         return this.find({
             where: {
-                user: {
+                doer: {
                     id: userId
                 },
                 validationStatus: validationStatus

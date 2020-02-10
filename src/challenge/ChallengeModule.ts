@@ -17,6 +17,10 @@ import {UsersService} from "../users/service/UsersService";
 import {UserRoleHistory} from "../users/entity/UserRoleHistory";
 import {ChallengeApplicationRepository} from "./repository/ChallengeApplicationRepository";
 import {Sphere} from "../users/entity/Sphere";
+import {GroupCalendar} from "../users/entity/GroupCalendar";
+import {GroupRoleRestriction} from "../users/entity/GroupRoleRestriction";
+import {GroupApplicationCandidate} from "./entity/GroupApplicationCandidate";
+import {UserSphere} from "../users/entity/UserSphere";
 
 @Module({
     imports: [
@@ -34,6 +38,10 @@ import {Sphere} from "../users/entity/Sphere";
             ChallengeRepository,
             ChallengeApplicationRepository,
             PollRepository,
+            GroupCalendar,
+            GroupRoleRestriction,
+            GroupApplicationCandidate,
+            UserSphere
         ]),
     ],
     providers: [UsersService, ChallengeService],

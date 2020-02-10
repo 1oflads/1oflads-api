@@ -25,6 +25,8 @@ import FileConfig from "../../config/FileConfig";
 import {ConfigType} from "@nestjs/config";
 import * as fs from "fs";
 import {ChallengeApplicationViewModel} from "../entity/ChallengeApplicationViewModel";
+import {GroupApplicationCandidate} from "../entity/GroupApplicationCandidate";
+import {wheat} from "color-name";
 
 @Injectable()
 export class ChallengeService {
@@ -36,11 +38,13 @@ export class ChallengeService {
         @InjectRepository(Challenge) private readonly challengeRepository: ChallengeRepository,
         @InjectRepository(ChallengeApplication) private readonly applicationRepository: ChallengeApplicationRepository,
         @InjectRepository(Rankable) private readonly rankableRepsitory: Repository<Rankable>,
+        @InjectRepository(GroupApplicationCandidate) private readonly groupAppCandidateRepository: Repository<GroupApplicationCandidate>,
         @InjectRepository(Group) private readonly groupRepository: Repository<Group>,
-        @InjectRepository(GroupChallengePoll) private readonly pollRepository: PollRepository,
+        @InjectRepository(PollRepository) private readonly pollRepository: PollRepository,
         @Inject(FileConfig.KEY) private readonly fileConfig: ConfigType<typeof FileConfig>,
         private readonly usersService: UsersService
     ) {
+
     }
 
     async create(request: ChallengeCreateRequest, isAdmin: boolean): Promise<Challenge> {
@@ -81,54 +85,117 @@ export class ChallengeService {
         return this.applicationRepository.findChallengesByUser(userId, ChallengeService.getStatus(validationStatus));
     }
 
-    async findApplicationsByUser(userId: number, validationStatus: number): Promise<ChallengeApplication[]> {
-        return this.applicationRepository.findByUser(userId, ChallengeService.getStatus(validationStatus));
-    }
-
-    async createPoll(groupId: number, userId: number, challengeId: number): Promise<GroupChallengePoll> {
+    async findApplicationsByGroup(groupId: number, userId: number, validationStatus: number) {
         const user = await this.usersService.find(userId);
-        if (!(await user.groups).some(g => g.id === groupId)) {
+        if (!((await user.groups).some(g => g.id == groupId))) {
             throw new NotParticipantError();
         }
 
-        const hasPoll = !!(await this.pollRepository.findByChallengeAndGroup(groupId, challengeId));
+        return this.findApplicationsByUser(groupId, validationStatus);
+    }
+
+    async findApplicationsByUser(userId: number, validationStatus: number): Promise<ChallengeApplicationViewModel[]> {
+
+        let challengeApplications = await this.applicationRepository.findByUser(userId, ChallengeService.getStatus(validationStatus))
+
+        return challengeApplications.map(ca => new ChallengeApplicationViewModel(
+            ca.id,
+            ca.challenge,
+            ca.completedOn,
+            ca.proofDescription,
+            ca.proofUrl
+        ))
+    }
+
+    async createPoll(candidateId: number, userId: number): Promise<GroupChallengePoll> {
+        const candidate = this.groupAppCandidateRepository.findOne(candidateId);
+        const resolvedCandidate = await candidate;
+        const groupId = resolvedCandidate.groupId;
+        const user = await this.usersService.find(userId);
+        if (!((await user.groups).some(g => g.id == groupId))) {
+            throw new NotParticipantError();
+        }
+
+        const polls = (await this.pollRepository.findByCandidate(candidate));
+        const hasPoll = polls.length > 0;
         if (hasPoll) {
             throw new GroupAlreadyHasPoll();
         }
 
-        return this.pollVote(challengeId, groupId, userId, true);
+        return this.pollVote(candidateId, userId, true);
     }
 
     async canGroupApply(groupId: number, challengeId: number): Promise<boolean> {
-        const poll = await this.pollRepository.findByChallengeAndGroup(groupId, challengeId);
-        if (!poll) {
+        const candidate = this.groupAppCandidateRepository.findOne(
+            {
+                where: {
+                    group: this.findGroup(groupId),
+                    challenge: this.challengeRepository.findOne(challengeId)
+                },
+                order: {
+                    id: "DESC"
+                }
+            }
+        );
+
+        const polls = await this.pollRepository.findByCandidate(candidate);
+        if (!polls || polls.length == 0) {
             return false;
         }
 
-        const group = await this.groupRepository.findOne(groupId);
+        return await this.isVotesThresholdMet(groupId, polls);
+    }
+
+    private async isVotesThresholdMet(groupId: number, poll): Promise<boolean> {
+        const group = await this.findGroup(groupId);
         const userCount = (await group.users).length;
+        console.log(poll);
         const positiveVotes = poll.map(vote => vote.isAccepted).filter(vote => vote).length;
 
         return ((positiveVotes / userCount) * 100) >= ChallengeService.MIN_NEEDED_VOTES_PERCENTAGE;
     }
 
-    async pollVote(challengeId: number, groupId: number, userId: number, vote: boolean): Promise<GroupChallengePoll> {
+    async pollVote(candidateId: number, userId: number, vote: boolean): Promise<GroupChallengePoll> {
         const poll = new GroupChallengePoll();
-        poll.challenge = await this.challengeRepository.findOne(challengeId);
-        poll.groupId = groupId;
-        poll.user = await this.usersService.find(userId);
+        await (poll.applicationCandidate = this.groupAppCandidateRepository.findOne(candidateId));
+        await (poll.user = this.usersService.find(userId));
         poll.isAccepted = vote;
+        await this.pollRepository.save(poll);
 
-        return this.pollRepository.save(poll);
+        const candidate = (await poll.applicationCandidate);
+        const groupId = candidate.groupId;
+        const challengeId = (await candidate.challenge).id;
+
+        await this.isVotesThresholdMet(
+            groupId,
+            await this.pollRepository.findByCandidate(poll.applicationCandidate)
+        )
+        && await this.convertGroupCandidateToApplication(
+            groupId,
+            challengeId
+        );
+
+        return poll;
     }
 
     async getGroupPoll(groupId: number, challengeId: number, userId: number): Promise<GroupChallengePoll[]> {
+        const challenge = this.challengeRepository.findOne(challengeId);
+        const candidate = this.groupAppCandidateRepository.findOne({
+            where: {
+                groupId: groupId,
+                challenge: challenge
+            },
+            order: {
+                id: "DESC"
+            }
+        });
+
         const user = await this.usersService.find(userId);
-        if (!(await user.groups).some(g => g.id === groupId)) {
+        if (!((await user.groups).some(async g => g.id == (await candidate).groupId))) {
             throw new NotAnOwnerError();
         }
 
-        return this.pollRepository.findByChallengeAndGroup(groupId, challengeId);
+        return this.pollRepository.findByCandidate(candidate);
     }
 
     async apply(doerId: number, challengeId: number, applicationRequest: ChallengeApplicationRequest, proof)
@@ -145,16 +212,26 @@ export class ChallengeService {
         application.doer = await this.rankableRepsitory.findOne(doerId);
         application.proofDescription = applicationRequest.proofDescription;
 
-        if (proof !== undefined) {
-            const now = new Date();
-            fs.writeFileSync(
-                this.fileConfig.destination + now.getTime() + proof.originalname,
-                proof.buffer
-            );
-            application.proofUrl = this.fileConfig.staticRoot + encodeURIComponent(now.getTime() + proof.originalname);
-        }
+        this.tryUploadProof(proof, application);
 
         return this.applicationRepository.save(application);
+    }
+
+    async findGroupCandidates(groupId: number, userId: number): Promise<GroupApplicationCandidate[]> {
+        const user = await this.usersService.find(userId);
+        if (!((await user.groups).some(g => g.id == groupId))) {
+            throw new NotParticipantError();
+        }
+
+        const candidates = this.groupAppCandidateRepository.find(
+            {
+                where: {
+                    groupId: groupId
+                }
+            }
+        );
+
+        return candidates;
     }
 
     async acceptApplication(applicationId: number): Promise<ChallengeApplication> {
@@ -187,6 +264,85 @@ export class ChallengeService {
         challenge.validationStatus = ValidationStatus.REJECTED;
 
         return this.challengeRepository.save(challenge);
+    }
+
+
+    async convertGroupCandidateToApplication(
+        groupId: number,
+        challengeId: number
+    ): Promise<ChallengeApplication> {
+        const applicationCandidate = await this.groupAppCandidateRepository.findOne(
+            {
+                where: {
+                    groupId: groupId,
+                    challenge: this.challengeRepository.findOne(challengeId)
+                },
+                order: {
+                    id: "DESC"
+                }
+            }
+        );
+
+        const challengeApplication = new ChallengeApplication();
+        challengeApplication.doer = await this.findGroup((await applicationCandidate).groupId);
+        challengeApplication.challenge = await applicationCandidate.challenge;
+        challengeApplication.proofDescription = applicationCandidate.proofDescription;
+        challengeApplication.proofUrl = applicationCandidate.proofUrl;
+        challengeApplication.validationStatus = ValidationStatus.PENDING;
+
+
+        return this.applicationRepository.save(challengeApplication);
+    }
+
+    async canGroupCandidate(groupId: number, challengeId: number): Promise<boolean> {
+        await this.checkWaitingThreshold(groupId, challengeId);
+        await this.checkRejectedThreshold(groupId, challengeId);
+        await this.checkAccepted(groupId, challengeId);
+        const candidates = await this.groupAppCandidateRepository.find(
+            {
+                where: {
+                    groupId: groupId,
+                    challenge: this.challengeRepository.findOne(challengeId)
+                }
+            }
+        );
+
+        const group = await this.findGroup(groupId);
+        const users = await group.users;
+        for (const candidate of candidates) {
+            const votes = (await candidate.polls);
+            if (votes.length < (users.length / 2)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    async candidateGroup(
+        groupId: number,
+        challengeId: number,
+        request: ChallengeApplicationRequest,
+        userId: number,
+        proof
+    ): Promise<any> {
+        const user = await this.usersService.find(userId);
+        console.log(groupId);
+        if (!((await user.groups).some(g => g.id == groupId))) {
+            throw new NotParticipantError();
+        }
+
+        const candidate = new GroupApplicationCandidate();
+        candidate.groupId = groupId;
+        await (candidate.challenge = this.challengeRepository.findOne(challengeId));
+        candidate.proofDescription = request.proofDescription;
+
+        this.tryUploadProof(proof, candidate);
+
+        await this.groupAppCandidateRepository.save(candidate);
+        await this.createPoll(candidate.id, userId);
+
+        return candidate;
     }
 
     private static getStatus(validationStatus: number): ValidationStatus {
@@ -247,5 +403,23 @@ export class ChallengeService {
         return challenge;
     }
 
+    private tryUploadProof(proof, application: { proofUrl }) {
+        if (proof !== undefined) {
+            const now = new Date();
+            fs.writeFileSync(
+                this.fileConfig.destination + now.getTime() + proof.originalname,
+                proof.buffer
+            );
+            application.proofUrl = this.fileConfig.staticRoot + encodeURIComponent(now.getTime() + proof.originalname);
+        }
+    }
+
+    private async findGroup(id: number): Promise<Group> {
+        return this.groupRepository.findOne({
+            where: {
+                groupId: id
+            }
+        });
+    }
 
 }

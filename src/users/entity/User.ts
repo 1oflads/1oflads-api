@@ -26,17 +26,14 @@ export class User extends Rankable {
     public password: string;
 
     @Column()
-    isAdmin: boolean = false;
+    public isAdmin: boolean = false;
 
     @OneToMany(type => GroupChallengePoll, poll => poll.user)
-    public polls: GroupChallengePoll[];
+    public polls: Promise<GroupChallengePoll[]>;
 
     @ManyToMany(type => Group, group => group.users)
     @JoinTable({name: "user_groups"})
     public groups: Promise<Group[]>;
-
-    @ManyToMany(type => Sphere, sphere => sphere.users)
-    public spheres: Promise<Sphere[]>;
 
     @OneToMany(type => UserRoleHistory, uhr => uhr.user)
     public roleHistory: UserRoleHistory[];
@@ -54,4 +51,7 @@ export class User extends Rankable {
 
     @OneToMany(type => GroupCalendar, calendar => calendar.createdBy)
     public createdGroupCalendarSlots: Promise<GroupCalendar[]>;
+
+    @Column({unique: true})
+    public userId: number;
 }

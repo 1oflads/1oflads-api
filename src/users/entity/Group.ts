@@ -1,21 +1,18 @@
 import {
     ChildEntity,
     Column,
-    Entity,
     JoinTable,
-    ManyToMany, ManyToOne,
-    OneToMany, PrimaryGeneratedColumn
+    ManyToMany,
+    ManyToOne,
+    OneToMany
 } from "typeorm";
 import {Rankable} from "./Rankable";
-import {GroupChallengePoll} from "../../challenge/entity/GroupChallengePoll";
 import {User} from "./User";
 import {Sphere} from "./Sphere";
 import {GroupCalendar} from "./GroupCalendar";
 
-@Entity()
+@ChildEntity()
 export class Group extends Rankable {
-    @PrimaryGeneratedColumn()
-    public id: number;
 
     @Column()
     public name: string;
@@ -38,13 +35,15 @@ export class Group extends Rankable {
     @Column()
     fontColor: string;
 
-    @ManyToMany(type => User)
+    @ManyToMany(type => User, user => user.groups)
     public users: Promise<User[]>;
 
-    @ManyToOne(type => Sphere)
-    @JoinTable()
-    public sphere: Sphere;
+    @Column()
+    public sphereId: number;
 
     @OneToMany(type => GroupCalendar, calendar => calendar.group)
     public calendar: Promise<GroupCalendar[]>;
+
+    @Column({unique: true})
+    public groupId: number;
 }
