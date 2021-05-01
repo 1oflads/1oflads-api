@@ -2,6 +2,7 @@ import {GroupMemberViewModel} from "./GroupMemberViewModel";
 
 export class GroupViewModel {
     constructor(
+        public id: number,
         public name: string,
         public avatarUrl: string,
         public description: string,

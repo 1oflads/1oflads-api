@@ -157,7 +157,6 @@ export class UsersService {
         const spheresResult = await this.getSpheresByUserId(userId);
 
         console.log(spheresResult);
-
         console.log("finish")
         return new UserProfileViewModel(
             user.username,
@@ -233,7 +232,7 @@ export class UsersService {
 
         await this.groupRepository.save(group);
 
-        return new GroupCreateRequest(group.name, (await group.users).map(u => u.id));
+        return new GroupCreateRequest(group.id, group.name, (await group.users).map(u => u.id));
     }
 
     async findGroups(): Promise<GroupPreviewModel[]> {
@@ -255,6 +254,7 @@ export class UsersService {
         let members = (await group.users).map(u => new GroupMemberViewModel(u.id, u.name));
 
         return new GroupViewModel(
+            group.id,
             group.name,
             group.avatarUrl,
             group.description,
@@ -355,7 +355,10 @@ export class UsersService {
     async getGroupAppointments(groupId: number, userId: number, from: Date = null, to: Date = null)
         : Promise<EventInfoViewModel[]> {
         const user = this.find(userId);
-        if (!(await (await user).groups).some(g => g.id === groupId)) {
+        const groups = await (await user).groups;
+        console.log(groups);
+        console.log(groupId);
+        if (!groups.some(g => +g.id === +groupId)) {
             throw new NotAnOwnerError();
         }
 

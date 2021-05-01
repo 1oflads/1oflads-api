@@ -5,8 +5,6 @@ import {UserLoginRequest} from "../payload/UserLoginRequest";
 import {JwtService} from '@nestjs/jwt';
 import {UserLoginResponse} from "../payload/UserLoginResponse";
 import {UserStrippedDTO} from "../payload/UserStrippedDTO";
-import {Role} from "../../users/entity/Role";
-import {RoleTheme} from "../../users/entity/RoleTheme";
 
 @Injectable()
 export class AuthService {

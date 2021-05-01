@@ -16,7 +16,7 @@ import {UserRepository} from "../../users/repository/UserRepository";
 import {ArticleEditRequest} from "../payload/ArticleEditRequest";
 
 export class ArticlesService {
-    constructor (
+    constructor(
         @InjectRepository(Article) private readonly articleRepository: Repository<Article>,
         @Inject(FileConfig.KEY) private readonly fileConfig: ConfigType<typeof FileConfig>,
         @InjectRepository(User) private readonly userRepository: UserRepository
@@ -39,7 +39,9 @@ export class ArticlesService {
         return (await this.articleRepository.createQueryBuilder("a")
             .where("a.id NOT IN (SELECT distinct b.articlesId FROM article b WHERE b.articlesId IS NOT NULL)")
             .getMany())
-            .map(p => new ArticlePreviewModel(p.id, p.title, p.imageUrl));
+            .map(p =>
+                new ArticlePreviewModel(p.id, p.title, p.resume, p.imageUrl)
+            );
     }
 
     async findArticlePreviewsByProject(projectId: number): Promise<ArticlePreviewModel[]> {
@@ -49,7 +51,7 @@ export class ArticlesService {
                     id: projectId
                 }
             }
-        })).map(a => new ArticlePreviewModel(a.id, a.title, a.imageUrl));
+        })).map(a => new ArticlePreviewModel(a.id, a.title, a.resume, a.imageUrl));
     }
 
     async findAllProjectPreviews(): Promise<ArticlePreviewModel[]> {

@@ -28,13 +28,13 @@ export class GroupsController {
 
     @Get("/:id")
     @Public()
-    async details(@Param() groupId: number): Promise<GroupViewModel> {
+    async details(@Param("id") groupId: number): Promise<GroupViewModel> {
         return this.userService.findGroupDetails(groupId)
     }
 
     @Get("/:id/calendar")
     async getCalendar(
-        @Param() id: number,
+        @Param("id") id: number,
         @AuthPrincipal() user: UserStrippedDTO,
         @Query("from") from: Date,
         @Query("to") to: Date
@@ -49,7 +49,7 @@ export class GroupsController {
 
     @Patch("/:id/calendar")
     async createAppointment(
-        @Param() id: number,
+        @Param("id") id: number,
         @Body() request: CalendarEventCreateRequest,
         @AuthPrincipal() user: UserStrippedDTO
     ): Promise<EventInfoViewModel> {

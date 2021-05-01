@@ -23,10 +23,10 @@ export class Challenge {
     @Column()
     public points: number;
 
-    @Column()
+    @Column({nullable: true})
     public startsOn: Date;
 
-    @Column()
+    @Column({nullable: true})
     public endsOn: Date;
 
     @Column()

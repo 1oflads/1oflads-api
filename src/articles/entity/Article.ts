@@ -18,7 +18,9 @@ export class Article {
     @Column()
     public title: string;
 
-    @Column()
+    @Column({
+        type: "longtext"
+    })
     public content: string;
 
     @Column()

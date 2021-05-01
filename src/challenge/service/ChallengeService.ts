@@ -200,6 +200,9 @@ export class ChallengeService {
 
     async apply(doerId: number, challengeId: number, applicationRequest: ChallengeApplicationRequest, proof)
         : Promise<ChallengeApplication> {
+        console.log(doerId);
+        console.log(challengeId);
+        console.log(applicationRequest);
         await this.checkWaitingThreshold(doerId, challengeId);
         await this.checkRejectedThreshold(doerId, challengeId);
         await this.checkAccepted(doerId, challengeId);
@@ -396,8 +399,10 @@ export class ChallengeService {
         const challenge = await this.challengeRepository.findOne(challengeId);
         const now = new Date();
 
-        if (now.getTime() < challenge.startsOn.getTime() || now.getTime() > challenge.endsOn.getTime()) {
-            throw new ChallengeOutOfTimeframeError();
+        if (challenge.startsOn && challenge.endsOn) {
+            if (now.getTime() < challenge.startsOn.getTime() || now.getTime() > challenge.endsOn.getTime()) {
+                throw new ChallengeOutOfTimeframeError();
+            }
         }
 
         return challenge;
